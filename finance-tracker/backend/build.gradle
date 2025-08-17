@@ -1,7 +1,11 @@
 plugins {
-	id 'java'
-	id 'org.springframework.boot' version '3.5.4'
-	id 'io.spring.dependency-management' version '1.1.7'
+    id 'java'
+    id 'org.springframework.boot' version '3.5.4'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'checkstyle'
+    id 'com.github.spotbugs' version '6.0.22'
+    id 'jacoco'
+    id 'com.diffplug.spotless' version '6.25.0'
 }
 
 group = 'com.financetracker'
@@ -9,36 +13,123 @@ version = '0.0.1-SNAPSHOT'
 description = 'Personal Finance Tracker backend with Spring Boot'
 
 java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
-	}
-}
-
-configurations {
-	compileOnly {
-		extendsFrom annotationProcessor
-	}
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
 }
 
 repositories {
-	mavenCentral()
+    mavenCentral()
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'org.springframework.boot:spring-boot-starter-security'
-	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.flywaydb:flyway-core'
-	implementation 'org.flywaydb:flyway-database-postgresql'
-	compileOnly 'org.projectlombok:lombok'
-	runtimeOnly 'org.postgresql:postgresql'
-	annotationProcessor 'org.projectlombok:lombok'
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'org.springframework.security:spring-security-test'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-database-postgresql'
+
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    runtimeOnly 'org.postgresql:postgresql'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'com.h2database:h2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+    useJUnitPlatform()
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        exceptionFormat 'full'
+        showStandardStreams = false
+    }
+}
+
+checkstyle {
+    toolVersion = '10.15.0'
+    configFile = file('config/checkstyle/checkstyle.xml')
+    showViolations = true
+}
+
+
+spotbugs {
+    ignoreFailures = false
+    effort = 'max'
+    reportLevel = 'high'
+}
+
+tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
+    reports {
+        html.required = true
+        html.stylesheet = 'fancy-hist.xsl'
+        xml.required = false
+        sarif.required = false
+        text.required = false
+    }
+}
+
+jacoco {
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        csv.required = false
+        html.required = true
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            enabled = false
+            element = 'CLASS'
+            limit {
+                counter = 'INSTRUCTION'
+                value = 'COVEREDRATIO'
+                minimum = 0.50
+            }
+        }
+    }
+}
+
+spotless {
+    java {
+        googleJavaFormat('1.22.0')
+        target 'src/**/*.java'
+    }
+    format 'misc', {
+        target '*.md', '.gitignore'
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+tasks.named('check') {
+    dependsOn 'spotlessCheck'
+    dependsOn 'spotbugsMain', 'spotbugsTest'
+    dependsOn 'jacocoTestReport'
+}
+
+tasks.named('jar') {
+    enabled = false
+}
+
+bootJar {
+    archiveFileName = 'backend.jar'
 }
