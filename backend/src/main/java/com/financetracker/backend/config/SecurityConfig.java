@@ -11,15 +11,15 @@ public class SecurityConfig {
 
   @Bean
   public SecurityFilterChain security(HttpSecurity http) throws Exception {
-    http.csrf(csrf -> csrf.disable()) // disable CSRF for simplicity
+    http.csrf(csrf -> csrf.disable())
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers("/actuator/health", "/actuator/health/**")
-                    .permitAll() // open health endpoint
+                    .permitAll() 
                     .anyRequest()
-                    .authenticated() // secure everything else
+                    .authenticated()
             )
-        .httpBasic(Customizer.withDefaults()); // basic auth for other endpoints
+        .httpBasic(Customizer.withDefaults());
 
     return http.build();
   }
