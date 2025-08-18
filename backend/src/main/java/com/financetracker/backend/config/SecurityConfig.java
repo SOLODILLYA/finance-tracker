@@ -15,10 +15,9 @@ public class SecurityConfig {
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers("/actuator/health", "/actuator/health/**")
-                    .permitAll() 
+                    .permitAll()
                     .anyRequest()
-                    .authenticated()
-            )
+                    .authenticated())
         .httpBasic(Customizer.withDefaults());
 
     return http.build();
