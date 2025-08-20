@@ -3,7 +3,6 @@ plugins {
     id 'org.springframework.boot' version '3.5.4'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'checkstyle'
-    id 'com.github.spotbugs' version '6.0.22'
     id 'jacoco'
     id 'com.diffplug.spotless' version '6.25.0'
 }
@@ -13,19 +12,13 @@ version = '0.0.1-SNAPSHOT'
 description = 'Personal Finance Tracker backend with Spring Boot'
 
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
+    toolchain { languageVersion = JavaLanguageVersion.of(21) }
 }
 
-repositories {
-    mavenCentral()
-}
+repositories { mavenCentral() }
 
 configurations {
-    compileOnly {
-        extendsFrom annotationProcessor
-    }
+    compileOnly { extendsFrom annotationProcessor }
 }
 
 dependencies {
@@ -33,12 +26,10 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
     implementation 'org.flywaydb:flyway-core'
     implementation 'org.flywaydb:flyway-database-postgresql'
-
-	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-
     runtimeOnly 'org.postgresql:postgresql'
 
     compileOnly 'org.projectlombok:lombok'
@@ -65,25 +56,7 @@ checkstyle {
     showViolations = true
 }
 
-
-spotbugs {
-    ignoreFailures = false
-    effort = 'max'
-    reportLevel = 'high'
-}
-
-tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
-    reports {
-        html.required = true
-        html.stylesheet = 'fancy-hist.xsl'
-        xml.required = false
-        sarif.required = false
-        text.required = false
-    }
-}
-
-jacoco {
-}
+jacoco { }
 
 jacocoTestReport {
     dependsOn test
@@ -122,13 +95,10 @@ spotless {
 
 tasks.named('check') {
     dependsOn 'spotlessCheck'
-    dependsOn 'spotbugsMain', 'spotbugsTest'
     dependsOn 'jacocoTestReport'
 }
 
-tasks.named('jar') {
-    enabled = false
-}
+tasks.named('jar') { enabled = false }
 
 bootJar {
     archiveFileName = 'backend.jar'

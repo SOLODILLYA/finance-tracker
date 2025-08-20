@@ -1,26 +1,22 @@
-# ---- Build stage (needs JDK 21) ----
-FROM eclipse-temurin:21-jdk AS builder
-WORKDIR /app
+# ---- Build stage (Gradle + JDK 21) ----
+FROM gradle:8.10.2-jdk21 AS build
+WORKDIR /workspace
 
-# Copy Gradle wrapper & build files first for caching
-COPY gradlew gradlew.bat settings.gradle* build.gradle* gradle/ ./
-# Windows checkouts sometimes have CRLF; fix & make executable
-RUN sed -i 's/\r$//' gradlew && chmod +x gradlew
+COPY --chown=gradle:gradle settings.gradle* build.gradle* gradle.properties* ./
+COPY --chown=gradle:gradle gradle/ ./gradle/
+COPY --chown=gradle:gradle src ./src
 
-# Then copy sources
-COPY src ./src
+RUN --mount=type=cache,target=/home/gradle/.gradle \
+    gradle --no-daemon clean bootJar -x test
 
-# Build the Spring Boot fat jar (skip tests, no daemon)
-RUN ./gradlew --no-daemon bootJar -x test
+RUN set -eux; ls -lah build/libs; \
+    JAR="$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-plain.jar' | head -n1)"; \
+    test -n "$JAR"; \
+    cp "$JAR" /workspace/app.jar
 
-# Rename the single jar to a stable name to avoid COPY wildcards
-RUN JAR="$(ls build/libs/*-*.jar | head -n1)" \
- && echo "Using jar: $JAR" \
- && cp "$JAR" /app/app.jar
-
-# ---- Runtime stage (JRE is fine) ----
+# ---- Runtime ----
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-COPY --from=builder /app/app.jar app.jar
+COPY --from=build /workspace/app.jar app.jar
 EXPOSE 8080
-ENTRYPOINT ["java","-jar","app.jar"]
+ENTRYPOINT ["java","-jar","/app/app.jar"]
