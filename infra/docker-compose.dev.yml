@@ -1,9 +1,35 @@
-version: "3.9"
-
 services:
+  db:
+    image: postgres:15
+    container_name: finance_db
+    environment:
+      POSTGRES_DB: financetracker
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "15432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB || exit 1",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
   backend:
-    image: eclipse-temurin:21-jdk
+    image: eclipse-temurin:21-jdk # only JDK needed
     working_dir: /app
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/financetracker
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      FRONTEND_ORIGIN: http://localhost:5173
     depends_on:
       db:
         condition: service_healthy
@@ -12,4 +38,24 @@ services:
       - ~/.gradle:/root/.gradle
     command: >
       bash -lc "chmod +x ./gradlew &&
-                ./gradlew bootRun --args=--spring.profiles.active=postgres"
+                ./gradlew bootRun"
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.dev
+    container_name: finance_frontend_dev
+    environment:
+      VITE_API_URL: http://localhost:8080
+    depends_on:
+      - backend
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+
+volumes:
+  db_data:

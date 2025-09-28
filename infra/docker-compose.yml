@@ -13,7 +13,6 @@ services:
       - "15432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
-      - ./seed.sql:/docker-entrypoint-initdb.d/seed.sql
     healthcheck:
       test:
         [
