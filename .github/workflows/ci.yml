@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }} # allow CI to push changes
 
       - name: Setup JDK
         uses: actions/setup-java@v4
@@ -28,11 +30,19 @@ jobs:
       - name: Grant execute permission for Gradle
         run: chmod +x ./gradlew
 
-      - name: Lint, Test, Build
+      - name: Apply Spotless (auto-fix formatting)
+        run: ./gradlew --no-daemon spotlessApply
+
+      - name: Commit formatting changes
         run: |
-          ./gradlew --no-daemon --stacktrace spotlessCheck
-          ./gradlew --no-daemon test
-          ./gradlew --no-daemon build
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "ci: apply spotless formatting" || echo "No changes to commit"
+          git push
+
+      - name: Test & Build
+        run: ./gradlew --no-daemon test build
 
       - name: Upload backend build (artifact)
         uses: actions/upload-artifact@v4
